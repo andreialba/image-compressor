@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Free Local Image Compressor - Compress Images Offline & Privately</title>
+    <meta name="description" content="Free image compressor that runs locally in your browser. Compress JPEG, PNG, WebP images offline—no uploads, no server. Batch processing, EXIF stripping, format conversion. Privacy-first and open source." />
+    <meta name="keywords" content="free image compressor, local image compressor, offline image compression, compress images without uploading, private image optimizer, browser image compressor, image size reducer, batch image compression, EXIF remover, JPEG PNG WebP compressor" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Inter"', 'sans-serif'],
+            },
+            colors: {
+              primary: {
+                50: '#f6f6f6',
+                100: '#e7e7e7',
+                200: '#d1d1d1',
+                300: '#b0b0b0',
+                400: '#888888',
+                500: '#000000',
+                600: '#000000', 
+                700: '#000000',
+                800: '#000000',
+                900: '#000000',
+                950: '#000000',
+              }
+            }
+          }
+        }
+      }
+    </script>
+<style>
+  /* Custom scrollbar for webkit */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+</style>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-white dark:bg-black text-black dark:text-white antialiased transition-colors duration-300 selection:bg-gray-200 selection:text-black dark:selection:bg-gray-800 dark:selection:text-white">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
