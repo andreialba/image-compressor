@@ -11,7 +11,6 @@ export interface OptimizationSettings {
   format: 'original' | 'jpeg' | 'webp';
   lossless: boolean;
   stripExif: boolean;
-  convertToRgb: boolean;
   resizeWidth?: number;
 }
 

@@ -19,7 +19,6 @@ const DEFAULT_SETTINGS: OptimizationSettings = {
   format: 'original',
   lossless: false,
   stripExif: true,
-  convertToRgb: true,
 };
 
 const loadStoredSettings = (): OptimizationSettings => {
@@ -379,7 +378,18 @@ const App: React.FC = () => {
                         disabled={filesToProcess.length === 0}
                         className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white dark:text-black bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-400 rounded-lg transition-all disabled:cursor-not-allowed shadow-sm active:scale-95 disabled:active:scale-100"
                       >
-                        <Play size={18} fill="currentColor" /> {files.some(f => f.status === ProcessingStatus.COMPLETED) ? 'Process Changes' : 'Start Processing'}
+                        <Play size={18} fill="currentColor" />
+                      {files.some(f => f.status === ProcessingStatus.COMPLETED) ? (
+                        <>
+                          <span className="sm:hidden">Process</span>
+                          <span className="hidden sm:inline">Process Changes</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="sm:hidden">Start</span>
+                          <span className="hidden sm:inline">Start Processing</span>
+                        </>
+                      )}
                       </button>
                     )}
                     {isGlobalProcessing && processingProgress.total > 0 && (
@@ -446,6 +456,15 @@ const App: React.FC = () => {
           >
             Privacy Policy
           </Link>
+          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">·</span>
+          <a
+            href="https://github.com/andreialba/image-compressor"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-900 dark:text-gray-100 hover:underline transition-all"
+          >
+            GitHub
+          </a>
         </div>
       </footer>
     </div>

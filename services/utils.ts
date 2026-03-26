@@ -47,7 +47,6 @@ export const areSettingsEqual = (a?: OptimizationSettings, b?: OptimizationSetti
     a.format === b.format &&
     a.lossless === b.lossless &&
     a.stripExif === b.stripExif &&
-    a.convertToRgb === b.convertToRgb &&
     a.resizeWidth === b.resizeWidth
   );
 };

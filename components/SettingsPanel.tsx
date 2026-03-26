@@ -158,19 +158,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onChange, disab
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-black dark:peer-focus:ring-white rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-black dark:peer-checked:bg-white"></div>
                     </div>
                 </label>
-                <label className="flex items-center justify-between cursor-pointer group py-1">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">Convert to RGB</span>
-                    <div className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                          type="checkbox"
-                          checked={settings.convertToRgb}
-                          onChange={(e) => updateSetting('convertToRgb', e.target.checked)}
-                          disabled={disabled}
-                          className="sr-only peer"
-                      />
-                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-black dark:peer-focus:ring-white rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-black dark:peer-checked:bg-white"></div>
-                    </div>
-                </label>
                 <label
                     className="flex items-center justify-between cursor-pointer group py-1"
                 >
