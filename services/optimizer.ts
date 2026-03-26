@@ -153,36 +153,39 @@ const processImageSmart = async (
   onProgress: (progress: number) => void,
   signal?: AbortSignal
 ): Promise<Blob> => {
-  const SSIM_TARGET = settings.lossless ? 0.985 : 0.96;
+  const SSIM_TARGET = settings.lossless ? 0.99 : 0.98;
+  const MIN_QUALITY = settings.lossless ? 0.7 : 0.5;
+  const MAX_QUALITY = 1.0;
+  const userQuality = Math.max(0.5, Math.min(1.0, settings.quality / 100));
+
   const originalPixels = await getPixelData(file);
 
-  let minQ = settings.lossless ? 0.7 : 0.3;
-  let maxQ = 1.0;
+  let minQ = Math.max(MIN_QUALITY, userQuality - 0.2);
+  let maxQ = MAX_QUALITY;
+  let currentQ = userQuality;
   let bestBlob: Blob | null = null;
   let bestSize = Number.POSITIVE_INFINITY;
-  const iterations = 7;
+  const iterations = 8;
 
   onProgress(10);
 
   for (let i = 0; i < iterations; i++) {
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
-    const currentQ = (minQ + maxQ) / 2;
+    // starting from user-preferred quality, then binary search toward lowest acceptable quality
+    currentQ = Math.max(MIN_QUALITY, Math.min(MAX_QUALITY, (minQ + maxQ) / 2));
 
     const compressedBlob = await processImageStandard(file, settings, currentQ, (p) => {
       onProgress(10 + ((i / iterations) * 80) + (p * 0.2));
     }, signal);
 
-    // Get Compressed Pixels
     const compressedPixels = await getPixelData(compressedBlob);
 
-    // Check match dimensions (sanity check, usually safe due to keepResolution)
     if (originalPixels.width !== compressedPixels.width || originalPixels.height !== compressedPixels.height) {
-      console.warn("Dimension mismatch during smart compress, falling back to standard");
+      console.warn('Dimension mismatch during smart compress, falling back to standard');
       return compressedBlob;
     }
 
-    // Measure SSIM
     const ssim = calculateSSIM(
       originalPixels.data,
       compressedPixels.data,
@@ -190,21 +193,31 @@ const processImageSmart = async (
       originalPixels.height
     );
 
-    // Keep best candidate that meets quality target, with minimum size
-    if (ssim >= SSIM_TARGET) {
+    const lowQuality = currentQ <= userQuality * 0.85;
+    const overlyAggressive = ssim < (SSIM_TARGET + 0.005);
+
+    // Accept candidate only when SSIM target hit and we are not too aggressive.
+    if (ssim >= SSIM_TARGET && (!lowQuality || ssim >= SSIM_TARGET + 0.01)) {
       if (compressedBlob.size < bestSize) {
         bestBlob = compressedBlob;
         bestSize = compressedBlob.size;
       }
       maxQ = currentQ;
+
+      // if current solution is good and close to requested quality, stop early
+      if (currentQ >= userQuality * 0.98 && ssim >= SSIM_TARGET + 0.01) {
+        break;
+      }
     } else {
       minQ = currentQ;
+
+      // when too aggressive quality drop has visible loss, step back
+      if (overlyAggressive) {
+        minQ = Math.max(minQ, currentQ + 0.01);
+      }
     }
 
-    // Early stop when quality bracket is too narrow
-    if (maxQ - minQ < 0.02) {
-      break;
-    }
+    if (maxQ - minQ < 0.015) break;
   }
 
   onProgress(100);
@@ -213,9 +226,8 @@ const processImageSmart = async (
     return bestBlob;
   }
 
-  // Fallback: If we never hit the target (rare), return a reasonable default
-  // 0.9 for lossless, 0.75 for lossy (balanced default)
-  const fallbackQ = settings.lossless ? 0.9 : 0.75;
+  // fallback to stable baseline quality in worst case
+  const fallbackQ = settings.lossless ? 0.9 : Math.max(0.8, userQuality);
   return await processImageStandard(file, settings, fallbackQ, () => {}, signal);
 };
 
