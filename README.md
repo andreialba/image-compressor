@@ -76,6 +76,33 @@ The built files will be in the `dist` folder. You can:
 
 ---
 
+## Security & Privacy Edge Cases
+
+- 100% local processing: images are never uploaded or sent over the network.
+- All processing is done with client-side scripts; verify `browser-image-compression` and `JSZip` versions are up-to-date.
+- Disable clipboard paste handling if the page is loaded in an insecure context (non-HTTPS in production).
+- Clear object URLs on every file removal and on unmount (avoids memory leaks and accidental caching).
+- For browsers with strict cross-origin policies, use `safe` fallback for image decoding by verifying `createImageBitmap` and `Canvas` availability.
+- Use optional `stripExif` setting to remove metadata and location data; default is enabled.
+- Validate MIME types on input files to prevent unsupported / malformed content.
+
+## Build & Release Polishing
+
+- Add standard scripts for lint/test/release in `package.json`:
+  - `npm run lint` — run ESLint with TypeScript rules.
+  - `npm run test` — run tests (add Jest/Playwright later).
+  - `npm run format` — run Prettier.
+  - `npm run release` — Bump version + build + tag.
+
+- Keep changelog and version in sync:
+  - `CHANGELOG.md` with `Unreleased` section.
+  - bump semver via `npm version [patch|minor|major]` + `git push --follow-tags`.
+
+- CI checklist:
+  - Node 18+ environment
+  - `npm ci` install dependencies
+  - run `npm run lint && npm run build && npm run test`
+
 ## Tech Stack
 
 React, TypeScript, Vite, browser-image-compression, JSZip

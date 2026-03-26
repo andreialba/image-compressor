@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint --ext .ts,.tsx .",
+    "format": "prettier --write .",
+    "test": "echo \"No tests configured yet\" && exit 0",
+    "release": "npm version patch && npm run build"
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",

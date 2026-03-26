@@ -226,7 +226,8 @@ const App: React.FC = () => {
 
         if (signal.aborted) return;
 
-        if (resultBlob.size >= file.originalSize) {
+        // Keep original only when format is unchanged; otherwise preserve requested format conversion output.
+        if (resultBlob.size >= file.originalSize && currentBatchSettings.format === 'original') {
           resultBlob = file.originalFile;
         }
 

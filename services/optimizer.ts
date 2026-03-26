@@ -159,7 +159,8 @@ const processImageSmart = async (
   let minQ = settings.lossless ? 0.7 : 0.3;
   let maxQ = 1.0;
   let bestBlob: Blob | null = null;
-  const iterations = 5;
+  let bestSize = Number.POSITIVE_INFINITY;
+  const iterations = 7;
 
   onProgress(10);
 
@@ -174,39 +175,44 @@ const processImageSmart = async (
 
     // Get Compressed Pixels
     const compressedPixels = await getPixelData(compressedBlob);
-    
+
     // Check match dimensions (sanity check, usually safe due to keepResolution)
     if (originalPixels.width !== compressedPixels.width || originalPixels.height !== compressedPixels.height) {
       console.warn("Dimension mismatch during smart compress, falling back to standard");
-      return compressedBlob; 
+      return compressedBlob;
     }
 
     // Measure SSIM
     const ssim = calculateSSIM(
-      originalPixels.data, 
-      compressedPixels.data, 
-      originalPixels.width, 
+      originalPixels.data,
+      compressedPixels.data,
+      originalPixels.width,
       originalPixels.height
     );
 
+    // Keep best candidate that meets quality target, with minimum size
     if (ssim >= SSIM_TARGET) {
-      // Quality is good enough (Visually acceptable)
-      bestBlob = compressedBlob;
-      // We found a valid quality, but can we go lower (smaller file)?
-      // Search in the lower half: [minQ, currentQ]
-      maxQ = currentQ; 
+      if (compressedBlob.size < bestSize) {
+        bestBlob = compressedBlob;
+        bestSize = compressedBlob.size;
+      }
+      maxQ = currentQ;
     } else {
-      // Quality is too low (Visual artifacts)
-      // We need higher quality.
-      // Search in the upper half: [currentQ, maxQ]
       minQ = currentQ;
+    }
+
+    // Early stop when quality bracket is too narrow
+    if (maxQ - minQ < 0.02) {
+      break;
     }
   }
 
   onProgress(100);
-  
-  if (bestBlob) return bestBlob;
-  
+
+  if (bestBlob) {
+    return bestBlob;
+  }
+
   // Fallback: If we never hit the target (rare), return a reasonable default
   // 0.9 for lossless, 0.75 for lossy (balanced default)
   const fallbackQ = settings.lossless ? 0.9 : 0.75;
