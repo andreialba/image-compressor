@@ -2,14 +2,18 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom';
 import { Download, Play, Trash2, Moon, Sun, Square } from 'lucide-react';
 import saveAs from 'file-saver';
-import JSZip from 'jszip'; 
 
 import Dropzone from './components/Dropzone';
 import ImageItem from './components/ImageItem';
 import SettingsPanel from './components/SettingsPanel';
 import { OptimizedFile, OptimizationSettings, ProcessingStatus } from './types';
 import { generateId, formatBytes, areSettingsEqual, getOutputFileName } from './services/utils';
-import { processImage, createZipArchive } from './services/optimizer';
+import {
+  processImage,
+  createZipArchive,
+  getCompressionErrorMessage,
+  getRecommendedConcurrency,
+} from './services/optimizer';
 
 const SETTINGS_STORAGE_KEY = 'image-compressor-settings';
 
@@ -55,6 +59,7 @@ const App: React.FC = () => {
   const [isGlobalProcessing, setIsGlobalProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState({ completed: 0, total: 0 });
   const abortControllerRef = useRef<AbortController | null>(null);
+  const filesRef = useRef<OptimizedFile[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(loadDarkMode);
   const [rememberSettings, setRememberSettings] = useState(() => {
     try {
@@ -66,6 +71,23 @@ const App: React.FC = () => {
   });
 
   const [settings, setSettings] = useState<OptimizationSettings>(loadStoredSettings);
+
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+
+      filesRef.current.forEach(file => {
+        URL.revokeObjectURL(file.previewUrl);
+        if (file.resultUrl) {
+          URL.revokeObjectURL(file.resultUrl);
+        }
+      });
+    };
+  }, []);
 
   const handleSettingsChange = useCallback((newSettings: OptimizationSettings) => {
     setSettings(newSettings);
@@ -197,8 +219,7 @@ const App: React.FC = () => {
     setProcessingProgress({ completed: 0, total: filesToProcess.length });
 
     const currentBatchSettings = { ...settings };
-
-    const CONCURRENCY_LIMIT = 3;
+    const concurrencyLimit = getRecommendedConcurrency(filesToProcess.length, currentBatchSettings);
     let nextIndex = 0;
     let completedCount = 0;
 
@@ -254,7 +275,7 @@ const App: React.FC = () => {
           setFiles(prev => prev.map(f => f.id === file.id ? {
             ...f,
             status: ProcessingStatus.ERROR,
-            error: 'Compression failed',
+            error: getCompressionErrorMessage(error),
             progress: 0
           } : f));
         }
@@ -265,7 +286,7 @@ const App: React.FC = () => {
       await processNext();
     };
 
-    const workers = Array(Math.min(CONCURRENCY_LIMIT, filesToProcess.length))
+    const workers = Array(Math.min(concurrencyLimit, filesToProcess.length))
       .fill(null)
       .map(() => processNext());
     await Promise.all(workers);

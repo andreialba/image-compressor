@@ -3,6 +3,52 @@ import JSZip from 'jszip';
 import { OptimizationSettings, OptimizedFile, ProcessingStatus } from '../types';
 import { getOutputFileName } from './utils';
 
+const LARGE_FILE_BYTES = 12 * 1024 * 1024;
+const VERY_LARGE_FILE_BYTES = 25 * 1024 * 1024;
+
+const isSmartCompressionEnabled = (settings: OptimizationSettings): boolean => {
+  return settings.useSmartCompression || settings.lossless;
+};
+
+export const getRecommendedConcurrency = (
+  filesToProcessCount: number,
+  settings: OptimizationSettings
+): number => {
+  const cpuCount = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+
+  if (isSmartCompressionEnabled(settings)) {
+    if (cpuCount <= 4 || filesToProcessCount >= 8) {
+      return 1;
+    }
+
+    return 2;
+  }
+
+  return Math.max(1, Math.min(3, Math.floor(cpuCount / 2)));
+};
+
+export const getCompressionErrorMessage = (error: unknown): string => {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return 'Compression canceled';
+  }
+
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+  if (message.includes('memory') || message.includes('allocation')) {
+    return 'Image is too large for this device. Try fewer files or resize first.';
+  }
+
+  if (message.includes('decode') || message.includes('bitmap') || message.includes('canvas')) {
+    return 'This image could not be decoded in your browser.';
+  }
+
+  if (message.includes('mime') || message.includes('format') || message.includes('type')) {
+    return 'This image format is not supported for compression.';
+  }
+
+  return 'Compression failed. Try another format or a smaller image.';
+};
+
 // --- SSIM Implementation ---
 
 /**
@@ -108,7 +154,7 @@ export const processImage = async (
   onProgress: (progress: number) => void,
   signal?: AbortSignal
 ): Promise<Blob> => {
-  if (settings.useSmartCompression || settings.lossless) {
+  if (isSmartCompressionEnabled(settings)) {
     return processImageSmart(file, settings, onProgress, signal);
   }
 
@@ -157,15 +203,24 @@ const processImageSmart = async (
   const MIN_QUALITY = settings.lossless ? 0.7 : 0.5;
   const MAX_QUALITY = 1.0;
   const userQuality = Math.max(0.5, Math.min(1.0, settings.quality / 100));
+  const isLargeFile = file.size >= LARGE_FILE_BYTES;
+  const isVeryLargeFile = file.size >= VERY_LARGE_FILE_BYTES;
+  const sampleWidth = isVeryLargeFile ? 320 : isLargeFile ? 384 : 512;
+  const iterations = isVeryLargeFile ? 4 : isLargeFile ? 6 : 8;
 
-  const originalPixels = await getPixelData(file);
+  // Very large files can trigger repeated decode/re-encode spikes in smart mode.
+  // Fall back to a stable single-pass run before the browser becomes unresponsive.
+  if (isVeryLargeFile && settings.useSmartCompression && !settings.lossless) {
+    return processImageStandard(file, settings, Math.max(0.82, userQuality), onProgress, signal);
+  }
+
+  const originalPixels = await getPixelData(file, sampleWidth);
 
   let minQ = Math.max(MIN_QUALITY, userQuality - 0.2);
   let maxQ = MAX_QUALITY;
   let currentQ = userQuality;
   let bestBlob: Blob | null = null;
   let bestSize = Number.POSITIVE_INFINITY;
-  const iterations = 8;
 
   onProgress(10);
 
@@ -179,7 +234,7 @@ const processImageSmart = async (
       onProgress(10 + ((i / iterations) * 80) + (p * 0.2));
     }, signal);
 
-    const compressedPixels = await getPixelData(compressedBlob);
+    const compressedPixels = await getPixelData(compressedBlob, sampleWidth);
 
     if (originalPixels.width !== compressedPixels.width || originalPixels.height !== compressedPixels.height) {
       console.warn('Dimension mismatch during smart compress, falling back to standard');
