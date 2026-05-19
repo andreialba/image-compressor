@@ -21,7 +21,7 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 ### Fixed
 - Removed an unused `JSZip` import from the main app shell.
 
-## [0.1.0] - 2026-05-19
+## [0.1.0] - 2026-03-15
 
 ### Added
 - Initial browser-based image compressor built with React, TypeScript, and Vite.
