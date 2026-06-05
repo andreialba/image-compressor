@@ -7,7 +7,9 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 ## [Unreleased]
 
 ### Changed
-- Reserved for upcoming work.
+- Added consistent supported-format validation for drag and drop, file browsing, and clipboard paste.
+- Added a supported formats hint below the upload dropzone and clearer feedback when unsupported files are skipped.
+- Cleaned up text encoding issues across the app shell and documentation.
 
 ## [0.1.1] - 2026-05-19
 

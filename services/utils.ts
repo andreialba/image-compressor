@@ -1,5 +1,38 @@
 import { OptimizationSettings } from '../types';
 
+export const SUPPORTED_INPUT_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+const SUPPORTED_INPUT_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'] as const;
+
+const getFileExtension = (fileName: string): string => {
+  const dotIndex = fileName.lastIndexOf('.');
+  return dotIndex >= 0 ? fileName.slice(dotIndex + 1).toLowerCase() : '';
+};
+
+export const isSupportedImageFile = (file: File): boolean => {
+  if (SUPPORTED_INPUT_MIME_TYPES.includes(file.type as (typeof SUPPORTED_INPUT_MIME_TYPES)[number])) {
+    return true;
+  }
+
+  return SUPPORTED_INPUT_EXTENSIONS.includes(
+    getFileExtension(file.name) as (typeof SUPPORTED_INPUT_EXTENSIONS)[number]
+  );
+};
+
+export const splitSupportedImageFiles = (files: File[]) => {
+  const supported: File[] = [];
+  const unsupported: File[] = [];
+
+  files.forEach((file) => {
+    if (isSupportedImageFile(file)) {
+      supported.push(file);
+    } else {
+      unsupported.push(file);
+    }
+  });
+
+  return { supported, unsupported };
+};
+
 export const formatBytes = (bytes: number, decimals = 2): string => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;

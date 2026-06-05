@@ -7,7 +7,13 @@ import Dropzone from './components/Dropzone';
 import ImageItem from './components/ImageItem';
 import SettingsPanel from './components/SettingsPanel';
 import { OptimizedFile, OptimizationSettings, ProcessingStatus } from './types';
-import { generateId, formatBytes, areSettingsEqual, getOutputFileName } from './services/utils';
+import {
+  generateId,
+  formatBytes,
+  areSettingsEqual,
+  getOutputFileName,
+  splitSupportedImageFiles,
+} from './services/utils';
 import {
   processImage,
   createZipArchive,
@@ -61,6 +67,7 @@ const App: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const filesRef = useRef<OptimizedFile[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(loadDarkMode);
+  const [fileImportNotice, setFileImportNotice] = useState<string | null>(null);
   const [rememberSettings, setRememberSettings] = useState(() => {
     try {
       return localStorage.getItem(SETTINGS_STORAGE_KEY) !== null;
@@ -118,7 +125,22 @@ const App: React.FC = () => {
   }, [settings]);
 
   const handleFilesAdded = useCallback((newFiles: File[]) => {
-    const newOptimizedFiles: OptimizedFile[] = newFiles.map(file => ({
+    const { supported, unsupported } = splitSupportedImageFiles(newFiles);
+
+    if (unsupported.length > 0) {
+      const label = unsupported.length === 1 ? 'file' : 'files';
+      setFileImportNotice(
+        `Skipped ${unsupported.length} unsupported ${label}. Supported formats: JPG, PNG, and WebP.`
+      );
+    } else {
+      setFileImportNotice(null);
+    }
+
+    if (supported.length === 0) {
+      return;
+    }
+
+    const newOptimizedFiles: OptimizedFile[] = supported.map(file => ({
       id: generateId(),
       originalFile: file,
       previewUrl: URL.createObjectURL(file),
@@ -343,6 +365,11 @@ const App: React.FC = () => {
           {/* Left Column: Upload & List */}
           <div className="lg:col-span-8 space-y-6">
             <Dropzone onFilesAdded={handleFilesAdded} />
+            {fileImportNotice && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+                {fileImportNotice}
+              </div>
+            )}
 
             {/* Actions Bar */}
             {files.length > 0 && (
@@ -470,14 +497,14 @@ const App: React.FC = () => {
               Andrei Alba
             </a>
           </p>
-          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">·</span>
+          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">|</span>
           <Link 
             to="/privacy" 
             className="text-gray-900 dark:text-gray-100 hover:underline transition-all"
           >
             Privacy Policy
           </Link>
-          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">·</span>
+          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">|</span>
           <a
             href="https://github.com/andreialba/image-compressor"
             target="_blank"

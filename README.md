@@ -1,6 +1,6 @@
 # Free Local Image Compressor
 
-**A free, offline, privacy-first image compressor** that runs entirely in your browser. Compress JPEG, PNG, and WebP images locally—no uploads, no server, no data leaves your device. Perfect for reducing file size for web, email, or storage while keeping your photos private.
+**A free, offline, privacy-first image compressor** that runs entirely in your browser. Compress JPEG, PNG, and WebP images locally - no uploads, no server, no data leaves your device. Perfect for reducing file size for web, email, or storage while keeping your photos private.
 
 > **Keywords:** free image compressor, local image compressor, offline image compression, browser image compressor, compress images without uploading, private image optimizer, image size reducer, batch image compression, EXIF remover
 
@@ -8,14 +8,14 @@
 
 ## Features
 
-- **100% local & offline** — All compression happens in your browser; images never leave your machine
-- **Free & open source** — No sign-up, no paywall, no limits
-- **Smart compression** — SSIM-based quality targeting for optimal file size with minimal visible loss
-- **Multiple formats** — Convert between JPEG, PNG, and WebP
-- **EXIF / metadata stripping** — Remove GPS location, camera info, and other embedded data before download
-- **Batch processing** — Compress multiple images at once and download as a single ZIP file
-- **Before/after comparison** — Slider to compare original vs compressed side by side
-- **Dark mode** — Easy on the eyes in low light
+- **100% local & offline** - All compression happens in your browser; images never leave your machine
+- **Free & open source** - No sign-up, no paywall, no limits
+- **Smart compression** - SSIM-based quality targeting for optimal file size with minimal visible loss
+- **Multiple formats** - Convert between JPEG, PNG, and WebP
+- **EXIF / metadata stripping** - Remove GPS location, camera info, and other embedded data before download
+- **Batch processing** - Compress multiple images at once and download as a single ZIP file
+- **Before/after comparison** - Slider to compare original vs compressed side by side
+- **Dark mode** - Easy on the eyes in low light
 
 ---
 
@@ -23,7 +23,7 @@
 
 ### Prerequisites
 
-- **Node.js** (v18 or later recommended) — [Download here](https://nodejs.org/) if you don't have it
+- **Node.js** (v18 or later recommended) - [Download here](https://nodejs.org/) if you don't have it
 
 ### Step 1: Clone or download this repository
 
@@ -48,7 +48,7 @@ npm run dev
 
 ### Step 4: Open in your browser
 
-Go to **http://localhost:3000** — the image compressor is now running on your machine.
+Go to **http://localhost:3000** - the image compressor is now running on your machine.
 
 ---
 
@@ -69,7 +69,7 @@ The built files will be in the `dist` folder. You can:
 ## Usage
 
 1. **Drag & drop** images onto the drop zone, or click to browse
-2. **Paste** images from your clipboard (Ctrl+V / ⌘V)
+2. **Paste** images from your clipboard (Ctrl+V / Cmd+V)
 3. **Adjust settings** (quality, format, EXIF stripping) in the right panel
 4. Click **Start Processing** to compress
 5. **Download** individual images or save all as a ZIP file
@@ -89,10 +89,10 @@ The built files will be in the `dist` folder. You can:
 ## Build & Release Polishing
 
 - Add standard scripts for lint/test/release in `package.json`:
-  - `npm run lint` — run ESLint with TypeScript rules.
-  - `npm run test` — run tests (add Jest/Playwright later).
-  - `npm run format` — run Prettier.
-  - `npm run release` — Bump version + build + tag.
+  - `npm run lint` - run ESLint with TypeScript rules.
+  - `npm run test` - run tests (add Jest/Playwright later).
+  - `npm run format` - run Prettier.
+  - `npm run release` - bump version, build, and tag.
 
 - Keep changelog and version in sync:
   - `CHANGELOG.md` with `Unreleased` section.

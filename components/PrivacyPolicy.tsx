@@ -78,18 +78,18 @@ const PrivacyPolicy: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
           <p>
             Made by{' '}
-            <a 
-              href="https://www.linkedin.com/in/andreialba/" 
-              target="_blank" 
+            <a
+              href="https://www.linkedin.com/in/andreialba/"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-gray-900 dark:text-gray-100 hover:underline transition-all"
             >
               Andrei Alba
             </a>
           </p>
-          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">·</span>
-          <Link 
-            to="/" 
+          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">|</span>
+          <Link
+            to="/"
             className="text-gray-900 dark:text-gray-100 hover:underline transition-all"
           >
             Back to Image Compressor
