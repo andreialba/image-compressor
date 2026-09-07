@@ -23,7 +23,6 @@ const EXTENSION_MIME_TYPES: Record<string, string> = {
   jpeg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
-  avif: 'image/avif',
 };
 
 /** MIME type of an input file, falling back to its extension when the browser reports none. */

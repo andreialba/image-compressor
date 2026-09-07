@@ -58,9 +58,7 @@ export const getCompressionErrorMessage = (error: unknown): string => {
 export const resolveOutputMime = (file: File, settings: OptimizationSettings): OutputMime => {
   if (settings.format !== 'original') return `image/${settings.format}`;
   const input = getInputMimeType(file);
-  return input === 'image/jpeg' || input === 'image/png' || input === 'image/webp' || input === 'image/avif'
-    ? input
-    : 'image/jpeg';
+  return input === 'image/jpeg' || input === 'image/png' || input === 'image/webp' ? input : 'image/jpeg';
 };
 
 const throwIfAborted = (signal?: AbortSignal) => {
@@ -129,8 +127,7 @@ const smartEncode = async (
   const isLargeFile = file.size >= LARGE_FILE_BYTES;
   const isVeryLargeFile = file.size >= VERY_LARGE_FILE_BYTES;
   const sampleWidth = isLargeFile ? 384 : 512;
-  // AVIF encodes are an order of magnitude slower, so search less.
-  const iterations = mime === 'image/avif' ? 4 : isLargeFile ? 6 : 8;
+  const iterations = isLargeFile ? 6 : 8;
 
   const encodeAt = (quality: number) => session.encode({ mime, quality: Math.round(quality * 100) });
 

@@ -9,8 +9,8 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 ## [0.1.2] - 2026-09-07
 
 ### Changed
-- Replaced the canvas-based encoder with WebAssembly codecs (MozJPEG, OxiPNG, libwebp, libavif) running in web workers. PNG output is now genuinely compressed and always lossless.
-- Added PNG and AVIF as output formats.
+- Replaced the canvas-based encoder with WebAssembly codecs (MozJPEG, OxiPNG, libwebp) running in web workers. PNG output is now genuinely compressed and always lossless.
+- Added PNG as an output format.
 - Tailwind CSS and the Inter font are now built into the bundle instead of loaded from CDNs, so the app makes no network requests at all.
 - Added consistent supported-format validation for drag and drop, file browsing, and clipboard paste.
 - Added a supported formats hint below the upload dropzone and clearer feedback when unsupported files are skipped.

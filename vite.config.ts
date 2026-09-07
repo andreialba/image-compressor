@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-const wasmCodecs = ['@jsquash/jpeg', '@jsquash/png', '@jsquash/oxipng', '@jsquash/webp', '@jsquash/avif'];
+const wasmCodecs = ['@jsquash/jpeg', '@jsquash/oxipng', '@jsquash/webp'];
 
 export default defineConfig({
   server: {

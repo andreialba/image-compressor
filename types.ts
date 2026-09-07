@@ -5,9 +5,9 @@ export enum ProcessingStatus {
   ERROR = 'ERROR',
 }
 
-export type OutputFormat = 'original' | 'jpeg' | 'png' | 'webp' | 'avif';
+export type OutputFormat = 'original' | 'jpeg' | 'png' | 'webp';
 
-export const OUTPUT_FORMATS: readonly OutputFormat[] = ['original', 'jpeg', 'png', 'webp', 'avif'];
+export const OUTPUT_FORMATS: readonly OutputFormat[] = ['original', 'jpeg', 'png', 'webp'];
 
 export interface OptimizationSettings {
   quality: number; // 0 to 100

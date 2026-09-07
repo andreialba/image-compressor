@@ -1,6 +1,6 @@
 import { calculateSSIM } from '../ssim';
 
-export type OutputMime = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif';
+export type OutputMime = 'image/jpeg' | 'image/png' | 'image/webp';
 
 export interface DecodeOptions {
   /** Longest side is scaled down to this many pixels when larger. */
@@ -37,17 +37,8 @@ const createCanvas = (width: number, height: number): Canvas2D => {
   return ctx;
 };
 
-const toBitmap = async (blob: Blob): Promise<ImageBitmap> => {
-  try {
-    return await createImageBitmap(blob, { imageOrientation: 'from-image' });
-  } catch (error) {
-    if (blob.type !== 'image/avif') throw error;
-    // Browsers without native AVIF decoding
-    const { decode } = await import('@jsquash/avif');
-    const image = await decode(await blob.arrayBuffer());
-    return createImageBitmap(image);
-  }
-};
+const toBitmap = (blob: Blob): Promise<ImageBitmap> =>
+  createImageBitmap(blob, { imageOrientation: 'from-image' });
 
 const fitDimensions = (width: number, height: number, maxDimension?: number) => {
   if (!maxDimension || Math.max(width, height) <= maxDimension) return { width, height };
@@ -84,11 +75,6 @@ export const encodeImage = async (image: ImageData, params: EncodeParams): Promi
     case 'image/webp': {
       const { encode } = await import('@jsquash/webp');
       return encode(image, { quality });
-    }
-    case 'image/avif': {
-      const { encode } = await import('@jsquash/avif');
-      // speed 7 keeps single-threaded wasm encodes to seconds rather than minutes
-      return encode(image, { quality, speed: 7 });
     }
     case 'image/png': {
       const { optimise } = await import('@jsquash/oxipng');

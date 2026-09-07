@@ -135,7 +135,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onChange, disab
                     <option value="jpeg">Convert to JPEG</option>
                     <option value="png">Convert to PNG</option>
                     <option value="webp">Convert to WebP</option>
-                    <option value="avif">Convert to AVIF</option>
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
                   <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -143,11 +142,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onChange, disab
                   </svg>
                 </div>
               </div>
-              {settings.format === 'avif' && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  AVIF gives the smallest files but takes several seconds per image to encode.
-                </p>
-              )}
             </div>
 
             {/* Toggles */}

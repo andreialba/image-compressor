@@ -10,9 +10,9 @@
 
 - **100% local & offline** - All compression happens in your browser; images never leave your machine
 - **Free & open source** - No sign-up, no paywall, no limits
-- **Real encoders, in your browser** - MozJPEG, OxiPNG, libwebp and AVIF compiled to WebAssembly, the same codecs the big online tools use
+- **Real encoders, in your browser** - MozJPEG, OxiPNG and libwebp compiled to WebAssembly, the same codecs the big online tools use
 - **Smart compression** - SSIM-based quality targeting for optimal file size with minimal visible loss
-- **Multiple formats** - Convert between JPEG, PNG, WebP, and AVIF; PNG output is always lossless
+- **Multiple formats** - Convert between JPEG, PNG, and WebP; PNG output is always lossless
 - **EXIF / metadata stripping** - Remove GPS location, camera info, and other embedded data before download
 - **Batch processing** - Compress multiple images at once and download as a single ZIP file
 - **Before/after comparison** - Slider to compare original vs compressed side by side
@@ -107,4 +107,4 @@ The built files will be in the `dist` folder. You can:
 
 ## Tech Stack
 
-React, TypeScript, Vite, Tailwind CSS, jSquash (MozJPEG, OxiPNG, libwebp, libavif via WebAssembly), JSZip
+React, TypeScript, Vite, Tailwind CSS, jSquash (MozJPEG, OxiPNG, libwebp via WebAssembly), JSZip
