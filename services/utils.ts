@@ -18,6 +18,20 @@ export const isSupportedImageFile = (file: File): boolean => {
   );
 };
 
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif',
+};
+
+/** MIME type of an input file, falling back to its extension when the browser reports none. */
+export const getInputMimeType = (file: File): string => {
+  if (file.type) return file.type;
+  return EXTENSION_MIME_TYPES[getFileExtension(file.name)] ?? '';
+};
+
 export const splitSupportedImageFiles = (files: File[]) => {
   const supported: File[] = [];
   const unsupported: File[] = [];

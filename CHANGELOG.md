@@ -6,10 +6,20 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-07
+
 ### Changed
+- Replaced the canvas-based encoder with WebAssembly codecs (MozJPEG, OxiPNG, libwebp, libavif) running in web workers. PNG output is now genuinely compressed and always lossless.
+- Added PNG and AVIF as output formats.
+- Tailwind CSS and the Inter font are now built into the bundle instead of loaded from CDNs, so the app makes no network requests at all.
 - Added consistent supported-format validation for drag and drop, file browsing, and clipboard paste.
 - Added a supported formats hint below the upload dropzone and clearer feedback when unsupported files are skipped.
 - Cleaned up text encoding issues across the app shell and documentation.
+
+### Fixed
+- Files that grew after a format conversion showed a green savings badge; they now show a red growth badge.
+- Converting a transparent PNG to JPEG produced a black background; it is now white.
+- Smart-mode progress bar could move backwards between iterations.
 
 ## [0.1.1] - 2026-05-19
 

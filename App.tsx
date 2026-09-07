@@ -6,7 +6,7 @@ import saveAs from 'file-saver';
 import Dropzone from './components/Dropzone';
 import ImageItem from './components/ImageItem';
 import SettingsPanel from './components/SettingsPanel';
-import { OptimizedFile, OptimizationSettings, ProcessingStatus } from './types';
+import { OptimizedFile, OptimizationSettings, ProcessingStatus, OUTPUT_FORMATS } from './types';
 import {
   generateId,
   formatBytes,
@@ -38,7 +38,7 @@ const loadStoredSettings = (): OptimizationSettings => {
       const parsed = JSON.parse(stored);
       if (parsed && typeof parsed === 'object') {
         const settings = { ...DEFAULT_SETTINGS, ...parsed } as OptimizationSettings;
-        if (settings.format === 'avif') settings.format = 'webp';
+        if (!OUTPUT_FORMATS.includes(settings.format)) settings.format = DEFAULT_SETTINGS.format;
         return settings;
       }
     }

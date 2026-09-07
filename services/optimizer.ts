@@ -1,7 +1,9 @@
-import imageCompression from 'browser-image-compression';
 import JSZip from 'jszip';
 import { OptimizationSettings, OptimizedFile, ProcessingStatus } from '../types';
-import { getOutputFileName } from './utils';
+import { getOutputFileName, getInputMimeType } from './utils';
+import { openImageSession, type ImageSessionHandle } from './codec/client';
+import type { OutputMime } from './codec/engine';
+import { copyJpegExif } from './exif';
 
 const LARGE_FILE_BYTES = 12 * 1024 * 1024;
 const VERY_LARGE_FILE_BYTES = 25 * 1024 * 1024;
@@ -38,6 +40,10 @@ export const getCompressionErrorMessage = (error: unknown): string => {
     return 'Image is too large for this device. Try fewer files or resize first.';
   }
 
+  if (message.includes('webassembly') || message.includes('wasm')) {
+    return 'Your browser could not load the compression engine.';
+  }
+
   if (message.includes('decode') || message.includes('bitmap') || message.includes('canvas')) {
     return 'This image could not be decoded in your browser.';
   }
@@ -49,101 +55,16 @@ export const getCompressionErrorMessage = (error: unknown): string => {
   return 'Compression failed. Try another format or a smaller image.';
 };
 
-// --- SSIM Implementation ---
-
-/**
- * Gets pixel data from a blob by rendering it to a small canvas.
- * We downscale large images to speed up SSIM calculation without significant loss of metric accuracy.
- */
-const getPixelData = async (blob: Blob, maxWidth = 512): Promise<{ data: Uint8ClampedArray, width: number, height: number }> => {
-  const img = await createImageBitmap(blob);
-  const scale = Math.min(1, maxWidth / img.width);
-  const width = Math.floor(img.width * scale);
-  const height = Math.floor(img.height * scale);
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  
-  if (!ctx) throw new Error("Could not get canvas context");
-  
-  ctx.drawImage(img, 0, 0, width, height);
-  const data = ctx.getImageData(0, 0, width, height);
-  img.close(); // Release memory
-  return { data: data.data, width, height };
+export const resolveOutputMime = (file: File, settings: OptimizationSettings): OutputMime => {
+  if (settings.format !== 'original') return `image/${settings.format}`;
+  const input = getInputMimeType(file);
+  return input === 'image/jpeg' || input === 'image/png' || input === 'image/webp' || input === 'image/avif'
+    ? input
+    : 'image/jpeg';
 };
 
-/**
- * Calculates a simplified structural similarity index (SSIM) between two image buffers.
- * This implementation focuses on the luminance (Y) channel.
- */
-const calculateSSIM = (
-  data1: Uint8ClampedArray, 
-  data2: Uint8ClampedArray, 
-  width: number, 
-  height: number
-): number => {
-  // Constants for SSIM (standard values)
-  const K1 = 0.01;
-  const K2 = 0.03;
-  const L = 255;
-  const C1 = (K1 * L) * (K1 * L);
-  const C2 = (K2 * L) * (K2 * L);
-
-  let mssim = 0;
-  const windowSize = 8;
-  const numWindows = Math.floor(width / windowSize) * Math.floor(height / windowSize);
-  
-  if (numWindows === 0) return 1;
-
-  for (let y = 0; y < height - windowSize; y += windowSize) {
-    for (let x = 0; x < width - windowSize; x += windowSize) {
-      
-      let meanx = 0, meany = 0;
-      let varx = 0, vary = 0, covxy = 0;
-
-      // Pass 1: Calculate Mean
-      for (let wy = 0; wy < windowSize; wy++) {
-        for (let wx = 0; wx < windowSize; wx++) {
-          const idx = ((y + wy) * width + (x + wx)) * 4;
-          // RGB to Luma (Y)
-          const y1 = 0.299 * data1[idx] + 0.587 * data1[idx+1] + 0.114 * data1[idx+2];
-          const y2 = 0.299 * data2[idx] + 0.587 * data2[idx+1] + 0.114 * data2[idx+2];
-          
-          meanx += y1;
-          meany += y2;
-        }
-      }
-      const N = windowSize * windowSize;
-      meanx /= N;
-      meany /= N;
-
-      // Pass 2: Calculate Variance and Covariance
-      for (let wy = 0; wy < windowSize; wy++) {
-        for (let wx = 0; wx < windowSize; wx++) {
-          const idx = ((y + wy) * width + (x + wx)) * 4;
-          const y1 = 0.299 * data1[idx] + 0.587 * data1[idx+1] + 0.114 * data1[idx+2];
-          const y2 = 0.299 * data2[idx] + 0.587 * data2[idx+1] + 0.114 * data2[idx+2];
-          
-          varx += (y1 - meanx) * (y1 - meanx);
-          vary += (y2 - meany) * (y2 - meany);
-          covxy += (y1 - meanx) * (y2 - meany);
-        }
-      }
-      varx /= (N - 1);
-      vary /= (N - 1);
-      covxy /= (N - 1);
-
-      // Compute SSIM for this window
-      const num = (2 * meanx * meany + C1) * (2 * covxy + C2);
-      const den = (meanx * meanx + meany * meany + C1) * (varx + vary + C2);
-      
-      mssim += num / den;
-    }
-  }
-
-  return mssim / numWindows;
+const throwIfAborted = (signal?: AbortSignal) => {
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 };
 
 // --- Main Processing Logic ---
@@ -154,47 +75,49 @@ export const processImage = async (
   onProgress: (progress: number) => void,
   signal?: AbortSignal
 ): Promise<Blob> => {
-  if (isSmartCompressionEnabled(settings)) {
-    return processImageSmart(file, settings, onProgress, signal);
-  }
+  const mime = resolveOutputMime(file, settings);
+  throwIfAborted(signal);
 
-  const quality = settings.quality / 100;
-  return processImageStandard(file, settings, quality, onProgress, signal);
-};
-
-// Standard single-pass compression (JPEG, PNG, WebP via browser-image-compression)
-const processImageStandard = async (
-  file: File,
-  settings: OptimizationSettings,
-  qualityFactor: number,
-  onProgress: (progress: number) => void,
-  signal?: AbortSignal
-): Promise<Blob> => {
-  const targetMimeType = settings.format === 'original' ? file.type : `image/${settings.format}`;
-
-  const options = {
-    maxSizeMB: 50,
-    maxWidthOrHeight: settings.resizeWidth || undefined,
-    useWebWorker: true,
-    fileType: targetMimeType,
-    initialQuality: qualityFactor,
-    onProgress: onProgress,
-    alwaysKeepResolution: true,
-    preserveExif: !settings.stripExif,
-    ...(signal && { signal }),
-  };
+  const session = await openImageSession(file, {
+    maxDimension: settings.resizeWidth || undefined,
+    // JPEG has no alpha channel; without this, transparency turns black.
+    flattenBackground: mime === 'image/jpeg',
+  });
 
   try {
-    return await imageCompression(file, options);
-  } catch (error) {
-    console.error('Compression error:', error);
-    throw error;
+    throwIfAborted(signal);
+    onProgress(10);
+
+    let result: Blob;
+    if (mime === 'image/png') {
+      // OxiPNG is lossless, so there is nothing to search for.
+      result = await session.encode({ mime, quality: 100, pngLevel: 2, optimiseAlpha: !settings.lossless });
+    } else if (isSmartCompressionEnabled(settings)) {
+      result = await smartEncode(session, file, mime, settings, onProgress, signal);
+    } else {
+      result = await session.encode({ mime, quality: settings.quality });
+    }
+    throwIfAborted(signal);
+
+    if (mime === 'image/jpeg' && getInputMimeType(file) === 'image/jpeg' && !settings.stripExif) {
+      result = await copyJpegExif(file, result);
+    }
+
+    onProgress(100);
+    return result;
+  } finally {
+    session.close();
   }
 };
 
-// Iterative Smart Compression using SSIM
-const processImageSmart = async (
+/**
+ * Binary-searches the lowest quality whose SSIM against the source still meets
+ * the target, starting from the user's preferred quality.
+ */
+const smartEncode = async (
+  session: ImageSessionHandle,
   file: File,
+  mime: OutputMime,
   settings: OptimizationSettings,
   onProgress: (progress: number) => void,
   signal?: AbortSignal
@@ -205,61 +128,49 @@ const processImageSmart = async (
   const userQuality = Math.max(0.5, Math.min(1.0, settings.quality / 100));
   const isLargeFile = file.size >= LARGE_FILE_BYTES;
   const isVeryLargeFile = file.size >= VERY_LARGE_FILE_BYTES;
-  const sampleWidth = isVeryLargeFile ? 320 : isLargeFile ? 384 : 512;
-  const iterations = isVeryLargeFile ? 4 : isLargeFile ? 6 : 8;
+  const sampleWidth = isLargeFile ? 384 : 512;
+  // AVIF encodes are an order of magnitude slower, so search less.
+  const iterations = mime === 'image/avif' ? 4 : isLargeFile ? 6 : 8;
 
-  // Very large files can trigger repeated decode/re-encode spikes in smart mode.
-  // Fall back to a stable single-pass run before the browser becomes unresponsive.
-  if (isVeryLargeFile && settings.useSmartCompression && !settings.lossless) {
-    return processImageStandard(file, settings, Math.max(0.82, userQuality), onProgress, signal);
+  const encodeAt = (quality: number) => session.encode({ mime, quality: Math.round(quality * 100) });
+
+  // Very large images: one pass at a safe quality rather than a full search.
+  if (isVeryLargeFile && !settings.lossless) {
+    return encodeAt(Math.max(0.82, userQuality));
   }
-
-  const originalPixels = await getPixelData(file, sampleWidth);
 
   let minQ = Math.max(MIN_QUALITY, userQuality - 0.2);
   let maxQ = MAX_QUALITY;
-  let currentQ = userQuality;
   let bestBlob: Blob | null = null;
   let bestSize = Number.POSITIVE_INFINITY;
 
-  onProgress(10);
-
   for (let i = 0; i < iterations; i++) {
-    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    throwIfAborted(signal);
 
-    // starting from user-preferred quality, then binary search toward lowest acceptable quality
-    currentQ = Math.max(MIN_QUALITY, Math.min(MAX_QUALITY, (minQ + maxQ) / 2));
+    const currentQ = Math.max(MIN_QUALITY, Math.min(MAX_QUALITY, (minQ + maxQ) / 2));
+    const candidate = await encodeAt(currentQ);
+    throwIfAborted(signal);
 
-    const compressedBlob = await processImageStandard(file, settings, currentQ, (p) => {
-      onProgress(10 + ((i / iterations) * 80) + (p * 0.2));
-    }, signal);
+    const ssim = await session.similarity(candidate, sampleWidth);
+    onProgress(10 + ((i + 1) / iterations) * 80);
 
-    const compressedPixels = await getPixelData(compressedBlob, sampleWidth);
-
-    if (originalPixels.width !== compressedPixels.width || originalPixels.height !== compressedPixels.height) {
-      console.warn('Dimension mismatch during smart compress, falling back to standard');
-      return compressedBlob;
+    if (ssim === null) {
+      console.warn('Dimension mismatch during smart compress, using this candidate');
+      return candidate;
     }
 
-    const ssim = calculateSSIM(
-      originalPixels.data,
-      compressedPixels.data,
-      originalPixels.width,
-      originalPixels.height
-    );
-
     const lowQuality = currentQ <= userQuality * 0.85;
-    const overlyAggressive = ssim < (SSIM_TARGET + 0.005);
+    const overlyAggressive = ssim < SSIM_TARGET + 0.005;
 
     // Accept candidate only when SSIM target hit and we are not too aggressive.
     if (ssim >= SSIM_TARGET && (!lowQuality || ssim >= SSIM_TARGET + 0.01)) {
-      if (compressedBlob.size < bestSize) {
-        bestBlob = compressedBlob;
-        bestSize = compressedBlob.size;
+      if (candidate.size < bestSize) {
+        bestBlob = candidate;
+        bestSize = candidate.size;
       }
       maxQ = currentQ;
 
-      // if current solution is good and close to requested quality, stop early
+      // Good enough and close to the requested quality: stop early.
       if (currentQ >= userQuality * 0.98 && ssim >= SSIM_TARGET + 0.01) {
         break;
       }
@@ -275,20 +186,18 @@ const processImageSmart = async (
     if (maxQ - minQ < 0.015) break;
   }
 
-  onProgress(100);
-
   if (bestBlob) {
     return bestBlob;
   }
 
   // fallback to stable baseline quality in worst case
   const fallbackQ = settings.lossless ? 0.9 : Math.max(0.8, userQuality);
-  return await processImageStandard(file, settings, fallbackQ, () => {}, signal);
+  return encodeAt(fallbackQ);
 };
 
 export const createZipArchive = async (files: OptimizedFile[]): Promise<Blob> => {
   const zip = new JSZip();
-  
+
   // Filter only completed files that have a result AND are smaller than original
   const successfulFiles = files.filter(f =>
     f.status === ProcessingStatus.COMPLETED &&

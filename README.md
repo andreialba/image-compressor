@@ -10,8 +10,9 @@
 
 - **100% local & offline** - All compression happens in your browser; images never leave your machine
 - **Free & open source** - No sign-up, no paywall, no limits
+- **Real encoders, in your browser** - MozJPEG, OxiPNG, libwebp and AVIF compiled to WebAssembly, the same codecs the big online tools use
 - **Smart compression** - SSIM-based quality targeting for optimal file size with minimal visible loss
-- **Multiple formats** - Convert between JPEG, PNG, and WebP
+- **Multiple formats** - Convert between JPEG, PNG, WebP, and AVIF; PNG output is always lossless
 - **EXIF / metadata stripping** - Remove GPS location, camera info, and other embedded data before download
 - **Batch processing** - Compress multiple images at once and download as a single ZIP file
 - **Before/after comparison** - Slider to compare original vs compressed side by side
@@ -79,7 +80,8 @@ The built files will be in the `dist` folder. You can:
 ## Security & Privacy Edge Cases
 
 - 100% local processing: images are never uploaded or sent over the network.
-- All processing is done with client-side scripts; verify `browser-image-compression` and `JSZip` versions are up-to-date.
+- All processing is done with client-side scripts; keep the `@jsquash/*` codecs and `JSZip` up-to-date.
+- No third-party CDN, font, or script is loaded at runtime; everything ships in the build.
 - Disable clipboard paste handling if the page is loaded in an insecure context (non-HTTPS in production).
 - Clear object URLs on every file removal and on unmount (avoids memory leaks and accidental caching).
 - For browsers with strict cross-origin policies, use `safe` fallback for image decoding by verifying `createImageBitmap` and `Canvas` availability.
@@ -105,4 +107,4 @@ The built files will be in the `dist` folder. You can:
 
 ## Tech Stack
 
-React, TypeScript, Vite, browser-image-compression, JSZip
+React, TypeScript, Vite, Tailwind CSS, jSquash (MozJPEG, OxiPNG, libwebp, libavif via WebAssembly), JSZip

@@ -200,9 +200,16 @@ const ImageItem: React.FC<ImageItemProps> = ({ item, onRemove, onDownload }) => 
                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                     Optimal
                  </span>
+              ) : savings < 0 ? (
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                  title="The converted file is larger than the original"
+                >
+                  +{Math.abs(savings)}%
+                </span>
               ) : (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400">
-                  -{Math.abs(savings)}%
+                  -{savings}%
                 </span>
               )}
             </div>

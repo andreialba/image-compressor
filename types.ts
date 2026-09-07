@@ -5,10 +5,14 @@ export enum ProcessingStatus {
   ERROR = 'ERROR',
 }
 
+export type OutputFormat = 'original' | 'jpeg' | 'png' | 'webp' | 'avif';
+
+export const OUTPUT_FORMATS: readonly OutputFormat[] = ['original', 'jpeg', 'png', 'webp', 'avif'];
+
 export interface OptimizationSettings {
   quality: number; // 0 to 100
   useSmartCompression: boolean; // Use SSIM to determine quality
-  format: 'original' | 'jpeg' | 'webp';
+  format: OutputFormat;
   lossless: boolean;
   stripExif: boolean;
   resizeWidth?: number;
