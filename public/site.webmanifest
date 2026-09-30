@@ -1,0 +1,13 @@
+{
+  "name": "Xoco Image Compressor",
+  "short_name": "Compress",
+  "description": "Compress JPEG, PNG and WebP images privately in your browser.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#141414",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/favicon-black.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

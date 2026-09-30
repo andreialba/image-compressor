@@ -20,7 +20,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       case 'open': {
         const session = await ImageSession.open(request.blob, request.options);
         sessions.set(request.sessionId, session);
-        reply({ id: request.id, ok: true, result: { width: session.width, height: session.height } });
+        reply({ id: request.id, ok: true, result: { width: session.width, height: session.height, resized: session.resized } });
         break;
       }
       case 'encode': {

@@ -2,9 +2,15 @@ import { calculateSSIM } from '../ssim';
 
 export type OutputMime = 'image/jpeg' | 'image/png' | 'image/webp';
 
+export interface ResizeTarget {
+  /** fit: longest side in px. width/height: that side in px. percent: of the original. */
+  mode: 'fit' | 'width' | 'height' | 'percent';
+  value: number;
+}
+
 export interface DecodeOptions {
-  /** Longest side is scaled down to this many pixels when larger. */
-  maxDimension?: number;
+  /** Scales the image down (never up), keeping its aspect ratio. */
+  resize?: ResizeTarget;
   /** Paint transparent areas white (for formats without alpha). */
   flattenBackground?: boolean;
 }
@@ -17,6 +23,8 @@ export interface EncodeParams {
   pngLevel?: number;
   /** Let OxiPNG rewrite fully transparent pixels for better compression. */
   optimiseAlpha?: boolean;
+  /** WebP only. In lossless mode libwebp treats `quality` as encoder effort. */
+  lossless?: boolean;
 }
 
 type Canvas2D = OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
@@ -40,26 +48,72 @@ const createCanvas = (width: number, height: number): Canvas2D => {
 const toBitmap = (blob: Blob): Promise<ImageBitmap> =>
   createImageBitmap(blob, { imageOrientation: 'from-image' });
 
-const fitDimensions = (width: number, height: number, maxDimension?: number) => {
-  if (!maxDimension || Math.max(width, height) <= maxDimension) return { width, height };
-  const scale = maxDimension / Math.max(width, height);
+export const targetDimensions = (width: number, height: number, resize?: ResizeTarget) => {
+  if (!resize || !(resize.value > 0)) return { width, height };
+  const { mode, value } = resize;
+  const side = mode === 'fit' ? Math.max(width, height) : mode === 'width' ? width : mode === 'height' ? height : 100;
+  const scale = value / side;
+  if (scale >= 1) return { width, height };
   return {
     width: Math.max(1, Math.round(width * scale)),
     height: Math.max(1, Math.round(height * scale)),
   };
 };
 
-export const decodeImage = async (blob: Blob, options: DecodeOptions = {}): Promise<ImageData> => {
+// Lanczos needs the whole source in JS and WASM memory at once; above this, use the canvas.
+const LANCZOS_MAX_PIXELS = 24_000_000;
+
+const draw = (source: CanvasImageSource, width: number, height: number, flatten?: boolean): Canvas2D => {
+  const ctx = createCanvas(width, height);
+  if (flatten) {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+  }
+  ctx.drawImage(source, 0, 0, width, height);
+  return ctx;
+};
+
+const lanczos = async (image: ImageData, width: number, height: number): Promise<ImageData> => {
+  const { default: resize } = await import('@jsquash/resize');
+  // Gamma-space, like the canvas halving steps before it, so all paths agree on brightness.
+  return resize(image, { width, height, method: 'lanczos3', linearRGB: false });
+};
+
+export const decodeImage = async (
+  blob: Blob,
+  options: DecodeOptions = {}
+): Promise<{ image: ImageData; resized: boolean }> => {
   const bitmap = await toBitmap(blob);
+  const flatten = options.flattenBackground;
   try {
-    const { width, height } = fitDimensions(bitmap.width, bitmap.height, options.maxDimension);
-    const ctx = createCanvas(width, height);
-    if (options.flattenBackground) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
+    const { width, height } = targetDimensions(bitmap.width, bitmap.height, options.resize);
+    if (width === bitmap.width && height === bitmap.height) {
+      return { image: draw(bitmap, width, height, flatten).getImageData(0, 0, width, height), resized: false };
     }
-    ctx.drawImage(bitmap, 0, 0, width, height);
-    return ctx.getImageData(0, 0, width, height);
+
+    // Halve on the canvas while that still leaves 2x the target: a 2:1 bilinear step
+    // doesn't alias, and it keeps the Lanczos input small.
+    let ctx: Canvas2D | null = null;
+    let w = bitmap.width;
+    let h = bitmap.height;
+    while (w / 2 >= width * 2) {
+      w = Math.round(w / 2);
+      h = Math.round(h / 2);
+      ctx = draw(ctx?.canvas ?? bitmap, w, h, flatten);
+    }
+
+    if (w * h <= LANCZOS_MAX_PIXELS) {
+      try {
+        const input = (ctx ?? draw(bitmap, w, h, flatten)).getImageData(0, 0, w, h);
+        return { image: await lanczos(input, width, height), resized: true };
+      } catch (error) {
+        console.warn('Lanczos resize failed, using canvas resize', error);
+      }
+    }
+    return {
+      image: draw(ctx?.canvas ?? bitmap, width, height, flatten).getImageData(0, 0, width, height),
+      resized: true,
+    };
   } finally {
     bitmap.close();
   }
@@ -74,7 +128,7 @@ export const encodeImage = async (image: ImageData, params: EncodeParams): Promi
     }
     case 'image/webp': {
       const { encode } = await import('@jsquash/webp');
-      return encode(image, { quality });
+      return params.lossless ? encode(image, { lossless: 1, exact: 1, quality }) : encode(image, { quality });
     }
     case 'image/png': {
       const { optimise } = await import('@jsquash/oxipng');
@@ -111,10 +165,15 @@ const downsample = async (bitmap: ImageBitmap, width: number, height: number): P
 export class ImageSession {
   private referenceSample: { width: number; data: ImageData } | null = null;
 
-  private constructor(readonly image: ImageData) {}
+  private constructor(
+    readonly image: ImageData,
+    /** True when `resize` scaled the source down. */
+    readonly resized: boolean
+  ) {}
 
   static async open(blob: Blob, options: DecodeOptions = {}): Promise<ImageSession> {
-    return new ImageSession(await decodeImage(blob, options));
+    const { image, resized } = await decodeImage(blob, options);
+    return new ImageSession(image, resized);
   }
 
   get width() {

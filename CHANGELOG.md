@@ -6,6 +6,21 @@ The format is based on Keep a Changelog, and this project follows Semantic Versi
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-30
+
+### Added
+- Resize by width, height or percentage.
+- Max Quality mode, with lossless WebP.
+
+### Changed
+- Resizing uses Lanczos resampling.
+- Save All includes every completed file.
+- Dark mode follows the system setting until toggled.
+
+### Fixed
+- Strip EXIF and resize now apply to files that don't compress smaller.
+- Files with the same name no longer overwrite each other in the ZIP.
+
 ## [0.1.2] - 2026-09-07
 
 ### Changed

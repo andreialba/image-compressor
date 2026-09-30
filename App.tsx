@@ -1,12 +1,13 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { Download, Play, Trash2, Moon, Sun, Square } from 'lucide-react';
 import saveAs from 'file-saver';
 
 import Dropzone from './components/Dropzone';
 import ImageItem from './components/ImageItem';
 import SettingsPanel from './components/SettingsPanel';
-import { OptimizedFile, OptimizationSettings, ProcessingStatus, OUTPUT_FORMATS } from './types';
+import SiteFooter from './components/SiteFooter';
+import XocoLogo from './components/XocoLogo';
+import { OptimizedFile, OptimizationSettings, ProcessingStatus, OUTPUT_FORMATS, RESIZE_MODES } from './types';
 import {
   generateId,
   formatBytes,
@@ -19,6 +20,7 @@ import {
   createZipArchive,
   getCompressionErrorMessage,
   getRecommendedConcurrency,
+  getDownloadableFiles,
 } from './services/optimizer';
 
 const SETTINGS_STORAGE_KEY = 'image-compressor-settings';
@@ -29,16 +31,23 @@ const DEFAULT_SETTINGS: OptimizationSettings = {
   format: 'original',
   lossless: false,
   stripExif: true,
+  resizeMode: 'none',
 };
 
 const loadStoredSettings = (): OptimizationSettings => {
   try {
     const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
+      const { resizeWidth, ...parsed } = JSON.parse(stored) ?? {};
       if (parsed && typeof parsed === 'object') {
         const settings = { ...DEFAULT_SETTINGS, ...parsed } as OptimizationSettings;
         if (!OUTPUT_FORMATS.includes(settings.format)) settings.format = DEFAULT_SETTINGS.format;
+        // Saved by versions that only had a max width/height field.
+        if (typeof resizeWidth === 'number' && !('resizeMode' in parsed)) {
+          settings.resizeMode = 'fit';
+          settings.resizeValue = resizeWidth;
+        }
+        if (!RESIZE_MODES.includes(settings.resizeMode)) settings.resizeMode = DEFAULT_SETTINGS.resizeMode;
         return settings;
       }
     }
@@ -53,11 +62,11 @@ const DARK_MODE_STORAGE_KEY = 'image-compressor-dark-mode';
 const loadDarkMode = (): boolean => {
   try {
     const stored = localStorage.getItem(DARK_MODE_STORAGE_KEY);
-    return stored === 'true';
+    if (stored !== null) return stored === 'true';
   } catch (e) {
     console.warn('Failed to load dark mode preference:', e);
-    return false;
   }
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
 };
 
 const App: React.FC = () => {
@@ -159,12 +168,18 @@ const App: React.FC = () => {
     } else {
       document.documentElement.classList.remove('dark');
     }
+  }, [isDarkMode]);
+
+  // Saved only on an explicit toggle, so an untouched page keeps following the system.
+  const toggleDarkMode = () => {
+    const next = !isDarkMode;
+    setIsDarkMode(next);
     try {
-      localStorage.setItem(DARK_MODE_STORAGE_KEY, String(isDarkMode));
+      localStorage.setItem(DARK_MODE_STORAGE_KEY, String(next));
     } catch (e) {
       console.warn('Failed to save dark mode preference:', e);
     }
-  }, [isDarkMode]);
+  };
 
   // Paste images from clipboard
   useEffect(() => {
@@ -187,15 +202,14 @@ const App: React.FC = () => {
   }, [handleFilesAdded]);
 
   const stats = useMemo(() => {
-    const completed = files.filter(f => f.status === ProcessingStatus.COMPLETED);
-    const validOptimizations = completed.filter(f => (f.compressedSize || 0) < f.originalSize);
-    
-    const originalTotal = validOptimizations.reduce((acc, curr) => acc + curr.originalSize, 0);
-    const compressedTotal = validOptimizations.reduce((acc, curr) => acc + (curr.compressedSize || 0), 0);
+    const completed = getDownloadableFiles(files);
+
+    const originalTotal = completed.reduce((acc, curr) => acc + curr.originalSize, 0);
+    const compressedTotal = completed.reduce((acc, curr) => acc + curr.resultBlob.size, 0);
     const saved = originalTotal - compressedTotal;
-    
+
     return {
-      completedCount: validOptimizations.length,
+      completedCount: completed.length,
       totalSaved: saved,
       totalPercent: originalTotal > 0 ? (saved / originalTotal) * 100 : 0
     };
@@ -257,7 +271,7 @@ const App: React.FC = () => {
       }));
 
       try {
-        let resultBlob = await processImage(
+        const resultBlob = await processImage(
           file.originalFile,
           currentBatchSettings,
           (progress) => {
@@ -267,11 +281,6 @@ const App: React.FC = () => {
         );
 
         if (signal.aborted) return;
-
-        // Keep original only when format is unchanged; otherwise preserve requested format conversion output.
-        if (resultBlob.size >= file.originalSize && currentBatchSettings.format === 'original') {
-          resultBlob = file.originalFile;
-        }
 
         setFiles(prev => prev.map(f => {
           if (f.id !== file.id) return f;
@@ -342,14 +351,13 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 transition-all duration-300 bg-white dark:bg-[#141414] border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between py-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xl font-semibold text-black dark:text-white tracking-tight">
-              Image Compressor
-            </span>
-          </div>
+          <a href="/" className="flex items-center gap-3 text-black dark:text-white" aria-label="Xoco Image Compressor home">
+            <XocoLogo className="h-5 w-auto" />
+          </a>
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsDarkMode(!isDarkMode)}
+            <button
+              onClick={toggleDarkMode}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all rounded-full active:scale-95"
             >
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -364,6 +372,7 @@ const App: React.FC = () => {
           
           {/* Left Column: Upload & List */}
           <div className="lg:col-span-8 space-y-6">
+            <h1 className="sr-only">Compress images locally in your browser</h1>
             <Dropzone onFilesAdded={handleFilesAdded} />
             {fileImportNotice && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
@@ -381,11 +390,15 @@ const App: React.FC = () => {
                       {stats.completedCount > 0 && (
                         <span className="hidden sm:inline text-gray-300 dark:text-gray-700">|</span>
                       )}
-                      {stats.completedCount > 0 && (
+                      {stats.completedCount > 0 && (stats.totalSaved >= 0 ? (
                         <span className="text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
                            Saved {formatBytes(stats.totalSaved)} ({stats.totalPercent.toFixed(0)}%)
                         </span>
-                      )}
+                      ) : (
+                        <span className="text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
+                           Grew by {formatBytes(-stats.totalSaved)} ({Math.abs(stats.totalPercent).toFixed(0)}%)
+                        </span>
+                      ))}
                     </div>
                   </div>
 
@@ -483,38 +496,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="py-8 border-t border-gray-200 dark:border-gray-800 text-center transition-colors duration-300 relative z-10 bg-gray-50 dark:bg-[#0a0a0a]">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
-          <p>
-            Made by{' '}
-            <a 
-              href="https://www.linkedin.com/in/andreialba/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-gray-900 dark:text-gray-100 hover:underline transition-all"
-            >
-              Andrei Alba
-            </a>
-          </p>
-          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">|</span>
-          <Link 
-            to="/privacy" 
-            className="text-gray-900 dark:text-gray-100 hover:underline transition-all"
-          >
-            Privacy Policy
-          </Link>
-          <span className="hidden sm:inline text-gray-300 dark:text-gray-600">|</span>
-          <a
-            href="https://github.com/andreialba/image-compressor"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-900 dark:text-gray-100 hover:underline transition-all"
-          >
-            GitHub
-          </a>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 };

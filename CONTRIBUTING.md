@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to Image Compressor! Please follow these steps:
+Thanks for contributing to Xoco Image Compressor! Please follow these steps:
 
 1. Fork the repository and create a feature branch.
 2. Install dependencies:

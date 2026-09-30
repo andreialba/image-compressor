@@ -55,6 +55,18 @@ export const formatBytes = (bytes: number, decimals = 2): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
+/** `name`, or `name-1`, `name-2`, ... if a lower-cased copy is already in `used`. */
+export const uniqueFileName = (name: string, used: Set<string>): string => {
+  if (!used.has(name.toLowerCase())) return name;
+  const dotIndex = name.lastIndexOf('.');
+  const base = dotIndex > 0 ? name.substring(0, dotIndex) : name;
+  const extension = dotIndex > 0 ? name.substring(dotIndex) : '';
+  for (let n = 1; ; n++) {
+    const candidate = `${base}-${n}${extension}`;
+    if (!used.has(candidate.toLowerCase())) return candidate;
+  }
+};
+
 /** Derives a safe output filename from the original name and result MIME type. Handles filenames without extensions. */
 export const getOutputFileName = (originalName: string, mime: string): string => {
   let extension: string;
@@ -93,6 +105,7 @@ export const areSettingsEqual = (a?: OptimizationSettings, b?: OptimizationSetti
     a.format === b.format &&
     a.lossless === b.lossless &&
     a.stripExif === b.stripExif &&
-    a.resizeWidth === b.resizeWidth
+    a.resizeMode === b.resizeMode &&
+    a.resizeValue === b.resizeValue
   );
 };

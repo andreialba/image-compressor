@@ -1,6 +1,6 @@
 import React from 'react';
 import { HelpCircle } from 'lucide-react';
-import { OptimizationSettings } from '../types';
+import { OptimizationSettings, ResizeMode } from '../types';
 
 interface SettingsPanelProps {
   settings: OptimizationSettings;
@@ -47,9 +47,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onChange, disab
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#333333]'
               }`}
             >
-              Lossless
+              Max Quality
             </button>
           </div>
+          {settings.lossless && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed px-1">
+              PNG and WebP are saved losslessly. JPEG can't be lossless, so it is kept visually identical to the original.
+            </p>
+          )}
         </div>
 
         {/* Balanced Specific Options */}
@@ -102,23 +107,52 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onChange, disab
             {/* Resize */}
             <div className="space-y-2.5">
               <div className="flex justify-between items-center">
-                <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Max Width/Height</label>
-                <span className="text-xs text-gray-500">Optional</span>
+                <label htmlFor="resize-mode" className="text-sm font-medium text-gray-900 dark:text-gray-100">Resize</label>
+                <span className="text-xs text-gray-500">Never enlarges</span>
               </div>
               <div className="relative">
-                 <input
-                    type="number"
-                    placeholder="Auto"
-                    min="1"
-                    value={settings.resizeWidth || ''}
-                    onChange={(e) => updateSetting('resizeWidth', e.target.value ? Number(e.target.value) : undefined)}
+                <select
+                    id="resize-mode"
+                    value={settings.resizeMode}
+                    onChange={(e) => {
+                      const resizeMode = e.target.value as ResizeMode;
+                      // A pixel value makes no sense as a percentage, and vice versa.
+                      const switchesUnit = (resizeMode === 'percent') !== (settings.resizeMode === 'percent');
+                      onChange({ ...settings, resizeMode, resizeValue: switchesUnit ? undefined : settings.resizeValue });
+                    }}
                     disabled={disabled}
-                    className="w-full p-3 pl-4 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-lg text-sm font-medium text-gray-900 dark:text-gray-100 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all placeholder:text-gray-400"
-                 />
-                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs font-medium">
-                    px
-                 </div>
+                    className="w-full p-3 pl-4 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-lg text-sm font-medium text-gray-900 dark:text-gray-100 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all appearance-none"
+                >
+                    <option value="none">Don&apos;t Resize</option>
+                    <option value="fit">Max Width or Height</option>
+                    <option value="width">Width</option>
+                    <option value="height">Height</option>
+                    <option value="percent">Percentage</option>
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 1L5 5L9 1" />
+                  </svg>
+                </div>
               </div>
+              {settings.resizeMode !== 'none' && (
+                <div className="relative">
+                   <input
+                      type="number"
+                      placeholder={settings.resizeMode === 'percent' ? '50' : '1920'}
+                      min="1"
+                      max={settings.resizeMode === 'percent' ? 100 : undefined}
+                      aria-label={settings.resizeMode === 'percent' ? 'Resize percentage' : 'Resize size in pixels'}
+                      value={settings.resizeValue || ''}
+                      onChange={(e) => updateSetting('resizeValue', e.target.value ? Number(e.target.value) : undefined)}
+                      disabled={disabled}
+                      className="w-full p-3 pl-4 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-lg text-sm font-medium text-gray-900 dark:text-gray-100 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black dark:focus:ring-white transition-all placeholder:text-gray-400"
+                   />
+                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs font-medium">
+                      {settings.resizeMode === 'percent' ? '%' : 'px'}
+                   </div>
+                </div>
+              )}
             </div>
 
             {/* Output Format */}

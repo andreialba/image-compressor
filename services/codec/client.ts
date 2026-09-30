@@ -4,6 +4,8 @@ import type { WorkerRequest, WorkerResponse } from './protocol';
 export interface ImageSessionHandle {
   readonly width: number;
   readonly height: number;
+  /** True when the source was scaled down by `resize`. */
+  readonly resized: boolean;
   encode(params: EncodeParams): Promise<Blob>;
   similarity(candidate: Blob, sampleWidth: number): Promise<number | null>;
   close(): void;
@@ -91,14 +93,16 @@ const openWorkerSession = async (blob: Blob, options: DecodeOptions): Promise<Im
   let closed = false;
 
   try {
-    const { width, height } = (await worker.request({ type: 'open', sessionId, blob, options })) as {
+    const { width, height, resized } = (await worker.request({ type: 'open', sessionId, blob, options })) as {
       width: number;
       height: number;
+      resized: boolean;
     };
 
     return {
       width,
       height,
+      resized,
       async encode(params) {
         const buffer = (await worker.request({ type: 'encode', sessionId, params })) as ArrayBuffer;
         return new Blob([buffer], { type: params.mime });
@@ -124,6 +128,7 @@ const openMainThreadSession = async (blob: Blob, options: DecodeOptions): Promis
   return {
     width: session.width,
     height: session.height,
+    resized: session.resized,
     async encode(params) {
       return new Blob([await session.encode(params)], { type: params.mime });
     },

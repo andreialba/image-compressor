@@ -1,9 +1,9 @@
 import JSZip from 'jszip';
 import { OptimizationSettings, OptimizedFile, ProcessingStatus } from '../types';
-import { getOutputFileName, getInputMimeType } from './utils';
+import { getOutputFileName, getInputMimeType, uniqueFileName } from './utils';
 import { openImageSession, type ImageSessionHandle } from './codec/client';
 import type { OutputMime } from './codec/engine';
-import { copyJpegExif } from './exif';
+import { copyJpegExif, stripMetadata } from './exif';
 
 const LARGE_FILE_BYTES = 12 * 1024 * 1024;
 const VERY_LARGE_FILE_BYTES = 25 * 1024 * 1024;
@@ -77,7 +77,10 @@ export const processImage = async (
   throwIfAborted(signal);
 
   const session = await openImageSession(file, {
-    maxDimension: settings.resizeWidth || undefined,
+    resize:
+      settings.resizeMode !== 'none' && settings.resizeValue
+        ? { mode: settings.resizeMode, value: settings.resizeValue }
+        : undefined,
     // JPEG has no alpha channel; without this, transparency turns black.
     flattenBackground: mime === 'image/jpeg',
   });
@@ -90,6 +93,8 @@ export const processImage = async (
     if (mime === 'image/png') {
       // OxiPNG is lossless, so there is nothing to search for.
       result = await session.encode({ mime, quality: 100, pngLevel: 2, optimiseAlpha: !settings.lossless });
+    } else if (mime === 'image/webp' && settings.lossless) {
+      result = await session.encode({ mime, quality: 75, lossless: true });
     } else if (isSmartCompressionEnabled(settings)) {
       result = await smartEncode(session, file, mime, settings, onProgress, signal);
     } else {
@@ -99,6 +104,12 @@ export const processImage = async (
 
     if (mime === 'image/jpeg' && getInputMimeType(file) === 'image/jpeg' && !settings.stripExif) {
       result = await copyJpegExif(file, result);
+    }
+
+    // Re-encoding didn't help: hand back the original, unless that would undo a resize.
+    if (result.size >= file.size && mime === getInputMimeType(file) && !session.resized) {
+      const original = settings.stripExif ? await stripMetadata(file, mime) : file;
+      if (original && original.size <= result.size) result = original;
     }
 
     onProgress(100);
@@ -192,21 +203,22 @@ const smartEncode = async (
   return encodeAt(fallbackQ);
 };
 
+/** Every completed file, including conversions that came out larger: same set as the per-file download buttons. */
+export const getDownloadableFiles = (files: OptimizedFile[]) =>
+  files.filter(
+    (f): f is OptimizedFile & { resultBlob: Blob } => f.status === ProcessingStatus.COMPLETED && !!f.resultBlob
+  );
+
 export const createZipArchive = async (files: OptimizedFile[]): Promise<Blob> => {
   const zip = new JSZip();
 
-  // Filter only completed files that have a result AND are smaller than original
-  const successfulFiles = files.filter(f =>
-    f.status === ProcessingStatus.COMPLETED &&
-    f.resultBlob &&
-    (f.compressedSize || 0) < f.originalSize
-  );
+  // Lower-cased: Windows and macOS treat "Photo.jpg" and "photo.jpg" as the same file.
+  const usedNames = new Set<string>();
 
-  successfulFiles.forEach((file) => {
-    if (file.resultBlob) {
-      const fileName = getOutputFileName(file.originalFile.name, file.resultBlob.type);
-      zip.file(fileName, file.resultBlob);
-    }
+  getDownloadableFiles(files).forEach((file) => {
+    const fileName = uniqueFileName(getOutputFileName(file.originalFile.name, file.resultBlob.type), usedNames);
+    usedNames.add(fileName.toLowerCase());
+    zip.file(fileName, file.resultBlob);
   });
 
   return await zip.generateAsync({ type: 'blob' });

@@ -3,11 +3,66 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Free Local Image Compressor - Compress Images Offline & Privately</title>
-    <meta name="description" content="Free image compressor that runs locally in your browser. Compress JPEG, PNG, WebP images offline - no uploads, no server. Batch processing, EXIF stripping, format conversion. Privacy-first and open source." />
-    <meta name="keywords" content="free image compressor, local image compressor, offline image compression, compress images without uploading, private image optimizer, browser image compressor, image size reducer, batch image compression, EXIF remover, JPEG PNG WebP compressor" />
+    <title>Xoco Image Compressor: Compress JPEG, PNG & WebP Privately</title>
+    <meta name="description" content="Compress JPEG, PNG and WebP images for free, right in your browser. Your images never leave your device. Batch compress, resize, convert formats and strip EXIF data." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://compress.xocoweb.com/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon-black.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)" />
+    <meta property="og:site_name" content="Xoco Image Compressor" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:title" content="Xoco Image Compressor: Compress JPEG, PNG & WebP Privately" />
+    <meta property="og:description" content="Free image compression that runs entirely in your browser. Your images never leave your device." />
+    <meta property="og:url" content="https://compress.xocoweb.com/" />
+    <meta property="og:image" content="https://compress.xocoweb.com/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Xoco Image Compressor: Compress images privately" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Xoco Image Compressor: Compress JPEG, PNG & WebP Privately" />
+    <meta name="twitter:description" content="Free image compression that runs entirely in your browser. Your images never leave your device." />
+    <meta name="twitter:image" content="https://compress.xocoweb.com/og.jpg" />
+    <meta name="twitter:image:alt" content="Xoco Image Compressor: Compress images privately" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Xoco Image Compressor",
+        "url": "https://compress.xocoweb.com/",
+        "description": "Free JPEG, PNG and WebP compression that runs entirely in your browser. Your images never leave your device.",
+        "image": "https://compress.xocoweb.com/og.jpg",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript and WebAssembly",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "featureList": [
+          "Compress JPEG, PNG and WebP",
+          "Convert between JPEG, PNG and WebP",
+          "Batch compression with ZIP download",
+          "Resize to a maximum width or height",
+          "Strip EXIF and GPS metadata",
+          "Runs locally, images never leave your device"
+        ],
+        "author": { "@type": "Person", "name": "Andrei Alba" },
+        "publisher": { "@type": "Organization", "@id": "https://xocoweb.com/#organization", "name": "xoco", "url": "https://xocoweb.com" }
+      }
+    </script>
+    <script>
+      try {
+        var stored = localStorage.getItem('image-compressor-dark-mode');
+        var dark = stored !== null ? stored === 'true' : matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
   <body class="bg-white dark:bg-black text-black dark:text-white antialiased transition-colors duration-300 selection:bg-gray-200 selection:text-black dark:selection:bg-gray-800 dark:selection:text-white">
+    <noscript>Xoco Image Compressor needs JavaScript to compress images in your browser.</noscript>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

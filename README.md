@@ -1,6 +1,6 @@
-# Free Local Image Compressor
+# Xoco Image Compressor
 
-**A free, offline, privacy-first image compressor** that runs entirely in your browser. Compress JPEG, PNG, and WebP images locally - no uploads, no server, no data leaves your device. Perfect for reducing file size for web, email, or storage while keeping your photos private.
+**A free, privacy-first image compressor** by [Xoco](https://xocoweb.com), live at [compress.xocoweb.com](https://compress.xocoweb.com), that runs entirely in your browser. Compress JPEG, PNG, and WebP images locally: nothing is uploaded and no data leaves your device. Perfect for reducing file size for web, email, or storage while keeping your photos private.
 
 > **Keywords:** free image compressor, local image compressor, offline image compression, browser image compressor, compress images without uploading, private image optimizer, image size reducer, batch image compression, EXIF remover
 
@@ -8,15 +8,16 @@
 
 ## Features
 
-- **100% local & offline** - All compression happens in your browser; images never leave your machine
+- **100% local** - All compression happens in your browser; images never leave your machine
 - **Free & open source** - No sign-up, no paywall, no limits
 - **Real encoders, in your browser** - MozJPEG, OxiPNG and libwebp compiled to WebAssembly, the same codecs the big online tools use
 - **Smart compression** - SSIM-based quality targeting for optimal file size with minimal visible loss
-- **Multiple formats** - Convert between JPEG, PNG, and WebP; PNG output is always lossless
+- **Multiple formats** - Convert between JPEG, PNG, and WebP; PNG output is always lossless, and Max Quality saves WebP losslessly too
 - **EXIF / metadata stripping** - Remove GPS location, camera info, and other embedded data before download
 - **Batch processing** - Compress multiple images at once and download as a single ZIP file
 - **Before/after comparison** - Slider to compare original vs compressed side by side
-- **Dark mode** - Easy on the eyes in low light
+- **Resize** - By max width or height, width, height or percentage, with Lanczos resampling
+- **Dark mode** - Follows your system setting, or toggle it
 
 ---
 
@@ -92,7 +93,7 @@ The built files will be in the `dist` folder. You can:
 
 - Add standard scripts for lint/test/release in `package.json`:
   - `npm run lint` - run ESLint with TypeScript rules.
-  - `npm run test` - run tests (add Jest/Playwright later).
+  - `npm run test` - run the Vitest unit tests.
   - `npm run format` - run Prettier.
   - `npm run release` - bump version, build, and tag.
 
@@ -108,3 +109,7 @@ The built files will be in the `dist` folder. You can:
 ## Tech Stack
 
 React, TypeScript, Vite, Tailwind CSS, jSquash (MozJPEG, OxiPNG, libwebp via WebAssembly), JSZip
+
+## License
+
+MIT, see [LICENSE](LICENSE). The build also emits `licenses.txt` with the licenses of every bundled third-party package.

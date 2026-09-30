@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FAQ | Xoco Image Compressor</title>
+    <meta name="description" content="Answers about Xoco Image Compressor: privacy, supported formats, Smart Optimization, Max Quality, EXIF removal and pricing." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://compress.xocoweb.com/faq/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon-black.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)" />
+    <meta property="og:site_name" content="Xoco Image Compressor" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:title" content="FAQ | Xoco Image Compressor" />
+    <meta property="og:description" content="Answers about privacy, formats, compression modes and EXIF removal." />
+    <meta property="og:url" content="https://compress.xocoweb.com/faq/" />
+    <meta property="og:image" content="https://compress.xocoweb.com/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      try {
+        var stored = localStorage.getItem('image-compressor-dark-mode');
+        var dark = stored !== null ? stored === 'true' : matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body class="bg-white dark:bg-black text-black dark:text-white antialiased">
+    <div id="root"></div>
+    <script type="module" src="/faq.tsx"></script>
+  </body>
+</html>
